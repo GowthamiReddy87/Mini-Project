@@ -3,13 +3,28 @@ import { authAPI } from '../services/api';
 
 const AuthContext = createContext(null);
 
+const isJwtExpired = (token) => {
+  if (!token) return true;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return payload.exp ? payload.exp * 1000 <= Date.now() : true;
+  } catch {
+    return true;
+  }
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser]     = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const stored = localStorage.getItem('user');
-    if (stored) setUser(JSON.parse(stored));
+    const token = localStorage.getItem('token');
+    if (stored && token && !isJwtExpired(token)) {
+      setUser(JSON.parse(stored));
+    } else {
+      localStorage.clear();
+    }
     setLoading(false);
   }, []);
 
